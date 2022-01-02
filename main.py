@@ -1,12 +1,26 @@
 import random
+from sys import argv
+
 GREEN = '\033[32m'
 YELLOW = '\033[33m'
 RESET = '\033[0m'
 
 words = set([word.strip() for word in open('./words.txt', 'r').readlines()])
 
-def update_results(word, greens, yellows, blacks):
-	result = input('Result: ').lower()
+def update_results(word, greens, yellows, blacks, target=None):
+	result = ''
+	if bool(target):
+		for index, char in enumerate(word):
+			if char == target[index]:
+				result += 'g'
+			elif char in target:
+				result += 'y'
+			else:
+				result += 'b'
+		print(f'Result: {result}')
+	else:
+		result = input('Result: ').lower()
+
 	assert len(result) == 5, "Bad length"
 	assert 5 == result.count('g') + result.count('y') + result.count('b'), "Only the letters `g`, `y` and `g` are allwed"
 	if result == 'ggggg':
@@ -45,6 +59,16 @@ def color_word(word, greens, yellows):
 
 
 def main():
+	global words
+	target = None
+	if len(argv) == 3 and argv[1] == '-s':
+		target = argv[2].lower()
+		assert len(target) == 5, "Bad length"
+		assert target.isalpha(), "Only English letters are allowed"
+		print(f'Started simulation with word {target}...\n')
+	elif len(argv) != 1:
+		print('This program is used to solve wordle challenges (finding a 5 characters word based on clues)\n\nUsage:\n  Standard mode: python main.py\n    - At this point the program will ask for clues\n    - Use `g` for green guesses, `y` for yellow guesses and `b` for black guesses.\n    - Example: when guessing `grows` and the target is `boost`, you\'ll have to input `bbgby`\n  Simulation mode: python main.py -s <target>\n    - The program will show its solution for that given target')
+		exit(1)
 	tries = 1
 	word = random.choice(list(words))
 	while len(set(list(word))) < len(word):
@@ -55,19 +79,17 @@ def main():
 	while True:
 		print(f'{tries}. Word chosen: {color_word(word, greens, yellows)}')
 		tries += 1
-		res = update_results(word, greens, yellows, blacks)
+		res = update_results(word, greens, yellows, blacks, target=target)
 		if res:
 			print(f'{GREEN}Word found successfully{RESET}')
 			return 0
 		else:
 			words.remove(word)
-		potential_answers = choose_next(greens, yellows, blacks)
-		# print(f'Potential answers: {potential_answers}')
-		if len(potential_answers) == 0:
+		words = choose_next(greens, yellows, blacks)
+		if len(words) == 0:
 			print('Word not found')
 			return 1
-		word = random.choice(list(potential_answers))
-
+		word = random.choice(list(words))
 
 	exit(0)
 
